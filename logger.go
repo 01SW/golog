@@ -130,6 +130,7 @@ func (ns *News)Init(path string){
 			panic("读取配置文件失败，" + fer.Error())
 		}
 
+		config = &logConfig{}
 		cer := json.Unmarshal(data, config)
 		if cer != nil{
 			panic("所读取的配置文件存在错误，" + cer.Error())
