@@ -7,6 +7,7 @@ import (
 	"go.uber.org/zap/zapcore"
 	"io/ioutil"
 	"os"
+	"path"
 	"time"
 )
 
@@ -55,6 +56,17 @@ func (ns *News)GetConfig(path string)*logConfig{
 	return config
 }
 
+//判断对应文件夹是否存在，如果不存在则创建
+func mkDir(dirPath string){
+	dir := path.Dir(dirPath)
+	if _, er := os.Stat(dir); er != nil{
+		er = os.MkdirAll(dir, os.ModePerm)
+		if er != nil{
+			panic("无法创建文件夹，" + er.Error())
+		}
+	}
+}
+
 //LogConfig转zap.Config
 func configChangeZap(config *logConfig)*zap.Config{
 	cfg := zap.Config{}
@@ -70,6 +82,8 @@ func configChangeZap(config *logConfig)*zap.Config{
 	cfg.Encoding = config.Encoding
 	cfg.EncoderConfig = zap.NewProductionEncoderConfig()
 	cfg.EncoderConfig.EncodeTime = timeEncoder
+
+	mkDir(config.SavePath)
 
 	return &cfg
 }
@@ -102,16 +116,10 @@ func (ns *News)Init(path string){
 			panic("初始化日志失败，" + ler.Error())
 		}
 
-		file, er := os.Create(path)
+		er = ns.SaveConfig(path, config)
 		if er != nil{
-			panic("无法创建配置文件，" + er.Error())
+			panic("无法保存配置文件，" + er.Error())
 		}
-		data, _ := json.MarshalIndent(config, "", " ")
-		_, wer := file.Write(data)
-		if wer != nil{
-			panic("写入配置文件失败，" + wer.Error())
-		}
-		_ = file.Close()
 	}else{
 		file, er := os.Open(path)
 		if er != nil{
@@ -156,6 +164,8 @@ func (ns *News)ConfigInit(config *logConfig){
 
 //将LogConfig结构体对象保存到本地
 func (ns *News)SaveConfig(path string, config *logConfig)error{
+	mkDir(path)
+
 	file, er := os.Create(path)
 	if er != nil{
 		return er
